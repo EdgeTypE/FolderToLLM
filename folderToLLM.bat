@@ -1,9 +1,18 @@
 @echo off
-REM MODIFY THIS SECTION CAREFULLY!
-REM Full path to the CollectAndPrint.ps1 script:
-set "MAIN_SCRIPT_PATH=C:\src\FolderToLLM\CollectAndPrint.ps1"
+chcp 65001 >nul
+REM FolderToLLM - Batch wrapper for easy execution
+REM This batch file automatically detects its own location
 
-REM Run the main script using PowerShell.exe and pass all arguments (%*).
-REM -NoProfile: Does not load the PowerShell profile, starts faster.
-REM -ExecutionPolicy Bypass: Temporarily relaxes the execution policy (use with caution).
-powershell.exe -NoProfile -ExecutionPolicy Bypass -File "%MAIN_SCRIPT_PATH%" %*
+REM Get the directory where this batch file is located
+set "SCRIPT_DIR=%~dp0"
+set "MAIN_SCRIPT_PATH=%SCRIPT_DIR%CollectAndPrint.ps1"
+
+REM Check if -f or -Fast flag is present for fast mode
+echo %* | findstr /i /r "\-f \-Fast" >nul
+if %errorlevel% equ 0 (
+    REM Fast mode detected - pass -Fast switch
+    powershell.exe -NoProfile -ExecutionPolicy Bypass -File "%MAIN_SCRIPT_PATH%" -Fast
+) else (
+    REM Normal mode - pass all arguments
+    powershell.exe -NoProfile -ExecutionPolicy Bypass -File "%MAIN_SCRIPT_PATH%" %*
+)
