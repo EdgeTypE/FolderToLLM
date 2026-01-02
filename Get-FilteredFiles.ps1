@@ -20,6 +20,31 @@ function Get-FilteredFileItems {
     Write-Host "DEBUG: ExcludeExtensions (raw): $($ExcludeExtensions -join ', ')" -ForegroundColor Yellow
     Write-Host "DEBUG: MinSize: $MinSize, MaxSize: $MaxSize" -ForegroundColor Yellow
 
+    # Default exclusion lists (merged with caller-provided lists)
+    # Bu liste, tarama sırasında yaygın olarak gereksiz veya okunamayan dosyaların otomatik hariç tutulması için kullanılır.
+    $defaultExcludeExtensions = @(
+        ".pyc", ".pyo", ".class", ".jar", ".so", ".o", ".a", ".lib", ".ilk", ".pdb", ".obj",
+        ".tmp", ".temp", ".bak", ".log", ".trace", ".cache", ".swp",
+        ".zip", ".gz", ".tar",
+        ".jpg", ".jpeg", ".png", ".gif", ".bmp",
+        ".iso", ".mp3", ".mp4",
+        ".pdf", ".doc", ".docx", ".xls", ".xlsx", ".ppt", ".pptx",
+        ".DS_Store", "thumbs.db", ".env"
+    )
+
+    if (-not $ExcludeExtensions) { $ExcludeExtensions = @() }
+    # Normalize to lowercase, ensure starts with dot, remove empty, and remove duplicates
+    $ExcludeExtensions = ($ExcludeExtensions + $defaultExcludeExtensions) | ForEach-Object {
+        if ($_ -and $_.Trim()) {
+            ($_.Trim().ToLowerInvariant() -replace '^\*?(?!\.)', '.')
+        }
+    } | Where-Object {$_} | Select-Object -Unique
+
+    # Default folders to exclude (common build, dependency and VCS folders)
+    $defaultExcludeFolders = @("node_modules", "build", "dist", ".cache", ".git", ".svn", ".hg", ".venv", "__pycache__", ".svelte-kit", ".github", ".pytest_cache", "venv")
+    if (-not $ExcludeFolders) { $ExcludeFolders = @() }
+    $ExcludeFolders = ($ExcludeFolders + $defaultExcludeFolders) | Select-Object -Unique
+
     # Normalize RootPath to an absolute path
     $absoluteRootPath = ""
     try {
@@ -49,8 +74,8 @@ function Get-FilteredFileItems {
                     Write-Warning "Exclude folder path '$excFolderItem' (resolved to '$resolvedPath') is not a directory. It will be ignored."
                 }
             } catch {
-                # Resolve-Path hata verirse, klasör bulunamadı demektir. Bu bir uyarıdır, hata değil.
-                Write-Warning "Could not resolve exclude folder path: '$excFolderItem' (tried as '$folderPathToResolve'). It will be ignored for exclusion."
+                # Resolve-Path hata verirse, klasör bulunamadı demektir. Bu normaldir, uyarıyı sessizce geç.
+                Write-Host "DEBUG: Exclude folder '$excFolderItem' not found (tried '$folderPathToResolve'). Skipping." -ForegroundColor DarkGray
             }
         }
         Write-Host "DEBUG: Final Normalized Absolute ExcludeFolderPaths for matching: $($normalizedAbsoluteExcludeFolderPaths -join '; ')" -ForegroundColor DarkCyan
@@ -138,6 +163,7 @@ function Get-FilteredFileItems {
         if ($shouldProcess -and $MaxSize -ge 0) {
             if ($file.Length -gt $MaxSize) {
                 $shouldProcess = $false; $reasonForFiltering = "Size $($file.Length) is greater than MaxSize $MaxSize."
+                Write-Host "DEBUG: File '$($file.FullName)' FILTERED OUT due to size ($($file.Length) > $MaxSize)." -ForegroundColor Yellow
             }
         }
 

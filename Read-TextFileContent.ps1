@@ -11,7 +11,14 @@ function Read-SafeTextFileContent {
 
     try {
         # Basic check for common binary extensions - can be expanded
-        $binaryExtensions = @(".exe", ".dll", ".zip", ".gz", ".tar", ".jpg", ".png", ".gif", ".bmp", ".iso", ".mp3", ".mp4", ".pdf", ".doc", ".xls", ".ppt") # .doc, .xls, .ppt are often binary
+        $binaryExtensions = @(
+            ".env", ".exe", ".dll", ".zip", ".gz", ".tar",
+            ".jpg", ".jpeg", ".png", ".gif", ".bmp",
+            ".iso", ".mp3", ".mp4", ".pdf",
+            ".doc", ".docx", ".xls", ".xlsx", ".ppt", ".pptx",
+            ".pyc", ".pyo", ".class", ".jar", ".so", ".o", ".a", ".lib", ".ilk", ".pdb", ".obj",
+            ".tmp", ".temp", ".bak", ".log", ".trace", ".cache", ".swp", ".DS_Store", "thumbs.db"
+        ) # Many of these formats are binary or not suitable for text display
         if ($binaryExtensions -contains $FileItem.Extension.ToLowerInvariant()) {
             return "[Binary File: $($FileItem.Name) - Content not displayed]"
         }
